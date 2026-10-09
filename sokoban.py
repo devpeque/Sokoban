@@ -15,17 +15,82 @@ class Sokoban:
         self.mapa = [
             [2,2,2,2,2,2,2],
             [2,4,4,4,4,4,2],
-            [2,4,4,0,4,4,2],
+            [2,4,0,1,3,4,2],
             [2,4,4,4,4,4,2],
             [2,2,2,2,2,2,2]
         ]
 
         self.personaje_fila = 2
-        self.personaje_columna = 3
+        self.personaje_columna = 2
+
+        # Nivel que se esta jugando y bandera para terminar el juego
+        self.nivel = 1
+        self.fin = False
+
+        # Guarda el mapa inicial para poder reiniciar el nivel
+        self.mapa_inicial = [fila[:] for fila in self.mapa]
+
+        # Los niveles siguientes estan en archivos de texto junto a este archivo
+        self.carpeta = os.path.dirname(os.path.abspath(__file__))
 
     def imprimirMapa(self) -> None:
         for fila in self.mapa:
             print(fila)
+
+    def buscarPersonaje(self) -> None:
+        # Busca la posicion del personaje en el mapa
+        for i, fila in enumerate(self.mapa):
+            for j, celda in enumerate(fila):
+                if celda in [0, 6]:
+                    self.personaje_fila = i
+                    self.personaje_columna = j
+
+    def cargarNivel(self, numero: int) -> bool:
+        # Carga el archivo nivel<numero>.txt, cada linea es una fila del mapa
+        # Devuelve False si el archivo no existe
+        ruta = os.path.join(self.carpeta, "nivel" + str(numero) + ".txt")
+        if not os.path.exists(ruta):
+            return False
+
+        mapa = []
+        with open(ruta, "r") as archivo:
+            for linea in archivo:
+                linea = linea.strip()
+                if linea != "":
+                    mapa.append([int(celda) for celda in linea])
+
+        self.mapa = mapa
+        self.mapa_inicial = [fila[:] for fila in mapa]
+        self.nivel = numero
+        self.buscarPersonaje()
+        return True
+
+    def reiniciar(self) -> None:
+        # Vuelve a cargar el nivel que se esta jugando
+        self.mapa = [fila[:] for fila in self.mapa_inicial]
+        self.buscarPersonaje()
+
+    def caja(self) -> bool:
+        # El nivel esta terminado cuando ya no hay cajas fuera de una meta (1)
+        # y hay al menos una caja sobre una meta (5)
+        terminado = False
+        for fila in self.mapa:
+            if 1 in fila:
+                return False
+            if 5 in fila:
+                terminado = True
+        return terminado
+
+    def siguienteNivel(self) -> None:
+        # Carga el siguiente nivel, si ya no hay mas termina el juego
+        self.imprimirMapa()
+        print("Nivel completado")
+        input("Presiona enter para continuar")
+        os.system("cls")
+
+        if not self.cargarNivel(self.nivel + 1):
+            print("No hay mas niveles")
+            self.fin = True
 
     def obtener(self, fila: int, columna: int) -> int:
 
@@ -445,22 +510,29 @@ class Sokoban:
             d - Derecha
             w - Arriba
             s - Abajo
+            r - Reiniciar
         """
         self.imprimirMapa()
         movimiento = input("Movimiento: ")
         if movimiento == "d":
             self.derecha()
-            os.system("cls")
+            os.system("clear")
 
         elif movimiento == "a":
             self.izquierda()
-            os.system("cls")
+            os.system("clear")
         elif movimiento == "w":
             self.arriba()
-            os.system("cls")
+            os.system("clear")
         elif movimiento == "s":
             self.abajo()
-            os.system("cls")
+            os.system("clear")
+        elif movimiento == "r":
+            self.reiniciar()
+            os.system("clear")
+
+        if self.caja():
+            self.siguienteNivel()
 soko = Sokoban()
-while True:
+while not soko.fin:
     soko.jugar()
